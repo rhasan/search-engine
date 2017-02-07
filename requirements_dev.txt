@@ -1,0 +1,7 @@
+pip==8.1.2
+flake8==2.6.0
+tox==2.3.1
+coverage==4.1
+pytest==3.0.3
+pepper8==1.1.1
+setuptools==28.6.1
