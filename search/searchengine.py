@@ -1,13 +1,23 @@
+import urllib2
+from bs4 import BeautifulSoup
+from urlparse import urljoin
+from sqlite3 import dbapi2 as sqlite
+
+
+# Create a list of words to ignore
+ignorewords=set(['the', 'of', 'to', 'and', 'a', 'in', 'is', 'it'])
+
+
 class crawler:
 	# Initialize the crawler with the name of database
 	def __init__(self, dbname):
-		pass
+		self.con = sqlite.connect(dbname)
 
 	def __del__(self):
-		pass
+		self.con.close()
 
 	def dbcommit(self):
-		pass
+		self.con.commit()
 
 	# Auxilliary function for getting an entry id and adding
 	# it if it's not present
@@ -38,7 +48,35 @@ class crawler:
 	# first search to the given depth, indexing pages
 	# as we go
 	def crawl(self, pages, depth=2):
-		pass
+		for i in range(depth):
+			newpages = set()
+			for page in pages:
+				try:
+					c = urllib2.urlopen(page)
+				except:
+					print "Could not open %s" % page
+					continue
+				try:
+					soup = BeautifulSoup(c.read())
+					self.addtoindex(page, soup)
+
+					links = soup('a')
+					for link in links:
+						if 'href' in dict(link.attrs):
+							url = urljoin(page, link['href'])
+							if url.find("'") != -1: continue
+							url = url.split('#')[0]  # remove location portion
+							if url[0:4] == 'http' and not self.isindexed(url):
+								newpages.add(url)
+							link_text = self.gettextonly(link)
+							self.addlinkref(page, url, link_text)
+
+					self.dbcommit()
+				except:
+					print "Could not parse page %s" % page
+
+			pages = newpages
+
 
 	# Create the database tables
 	def createindextables(self):
